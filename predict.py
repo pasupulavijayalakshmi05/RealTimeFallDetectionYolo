@@ -5,31 +5,48 @@ import cv2
 from ultralytics import YOLO
 import os
 
+# Load trained YOLO model
 MODEL_PATH = "runs/detect/train/weights/best.pt"
 model = YOLO(MODEL_PATH)
 
+# Create Tkinter window
 root = tk.Tk()
 root.title("Fall Detection - Image Prediction")
 root.geometry("900x700")
+
+# Label to show image
 image_label = tk.Label(root)
 image_label.pack(pady=10)
+
+# Prediction label
 result_label = tk.Label(root, text="", font=("Arial", 14))
 result_label.pack(pady=10)
+
+
 def upload_and_predict():
     file_path = filedialog.askopenfilename(
-        filetypes=[("Image Files", "*.jpg *.jpeg *.png")])
+        filetypes=[("Image Files", "*.jpg *.jpeg *.png")]
+    )
     if not file_path:
         return
+
+    # Run YOLO prediction
     results = model.predict(source=file_path, conf=0.3, save=False)
+
+    # Read image
     img = cv2.imread(file_path)
+
     detected_classes = set()
+
     for r in results:
         for box in r.boxes:
             cls_id = int(box.cls[0])
             label = model.names[cls_id]
             detected_classes.add(label)
+
             x1, y1, x2, y2 = map(int, box.xyxy[0])
             conf = float(box.conf[0])
+
             cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
             cv2.putText(
                 img,
@@ -38,27 +55,40 @@ def upload_and_predict():
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.8,
                 (0, 255, 0),
-                2,)
+                2,
+            )
+
+    # Convert image for Tkinter
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img_pil = Image.fromarray(img_rgb)
     img_pil = img_pil.resize((700, 500))
     img_tk = ImageTk.PhotoImage(img_pil)
+
     image_label.config(image=img_tk)
     image_label.image = img_tk
+
     if detected_classes:
         result_label.config(
             text="Detected: " + ", ".join(detected_classes),
-            fg="green",)
+            fg="green",
+        )
     else:
         result_label.config(
             text="No person detected",
-            fg="red",)
+            fg="red",
+        )
+
+
+# Upload button
 upload_btn = tk.Button(
     root,
     text="Upload Image & Predict",
     command=upload_and_predict,
     font=("Arial", 14),
     bg="blue",
-    fg="white",)
+    fg="white",
+)
 upload_btn.pack(pady=20)
+
+# Start GUI
 root.mainloop()
